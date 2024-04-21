@@ -1,0 +1,407 @@
+---
+title: "CaseStudy2Markdown"
+author: "Jaren Shead"
+date: "2024-04-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+# Clearing the workspace
+rm(list = ls())
+```
+#Libraries
+```{r packages}
+# Load necessary libraries
+library(tm)
+library(tidyr)
+library(plyr)
+library(jsonlite)
+library(dplyr)
+library(tidyverse)
+library(stringr)
+library(class)
+library(caret)
+library(e1071)
+library(mvtnorm)
+library(gmodels)
+```
+
+#Data Loading
+```{r pressure, echo=FALSE}
+# Read the data
+df <- read.csv("C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/CaseStudy2-data.csv", header = TRUE)
+
+# Initial data exploration
+head(df)  # View first few rows
+dim(df)  # Check dimensions
+```
+
+## Data Exploration and Cleaning
+```{r}
+
+# Summarize important fields
+summary(df$Age)  # 18-60, average age 35
+summary(df$Education)  # Levels 1-5, average Education 3
+summary(df$StandardHours)  # Everyone works 80 hours
+summary(df$HourlyRate)  # Average hourly rate $60
+
+# Creating age groups
+df$AgeGroup <- cut(df$Age, breaks=c(18, 25, 35, 45, 55, 65), 
+                   labels=c("18-24", "25-34", "35-44", "45-54", "55-64"), 
+                   include.lowest = TRUE)
+table(df$AgeGroup)  # Show age group counts
+
+# Scaling DailyRate
+df$ScaledDailyRate <- scale(df$DailyRate, center = TRUE, scale = TRUE)
+summary(df$ScaledDailyRate)  # Summary of scaled DailyRate
+
+# Interaction feature
+df$Edu_JobInteraction <- interaction(df$Education, df$JobRole)  # Create interaction between Education and JobRole
+head(df$Edu_JobInteraction)  # View first few interactions
+
+# Addressing missing data
+missing_counts <- data.frame(sapply(df, function(x) sum(is.na(x))))
+missing_counts  # Check for missing data
+```
+# Exploratory Data Analysis
+```{r}
+
+# Attrition ratio analysis
+df |> 
+  count(Attrition) |> 
+  mutate(Percentage = n / sum(n) * 100) |> 
+  ggplot(aes(x = Attrition, y = Percentage, fill = Attrition)) +
+  geom_bar(aes(color = Attrition), stat = "identity") +
+  geom_text(aes(label = paste0(round(Percentage, 2), "%")), vjust = -0.3, color = "black") +
+  ylab("Percentage") +
+  ggtitle("Count of Attritions")
+
+# Boxplot of Scaled DailyRate by Age Group
+ggplot(df, aes(x = AgeGroup, y = ScaledDailyRate, fill = AgeGroup)) +
+  geom_boxplot() +
+  ggtitle("Boxplot of Scaled DailyRate by Age Group")
+
+
+# Histogram of Age distribution
+df |> 
+  ggplot(aes(x = Age))+
+  geom_histogram(fill = "blue", bins = 10)+
+  ggtitle("Histogram of Age")
+
+# Boxplot of Age vs Attrition
+df |> 
+  ggplot(aes(x = Age, y = Attrition))+
+  geom_boxplot(fill = c("green","yellow")) +
+  ggtitle("Age vs. Attrition")
+
+
+# Finding relationship between Departments and Attrition
+
+#Department
+df |> 
+  filter(Attrition == "Yes")|> 
+  count(Department) |> 
+  mutate(Percentage = n / sum(n) * 100) |> 
+  ggplot(aes(x = Department,y = Percentage, fill = Department))+
+  geom_bar(aes(color = Department), stat = "identity")+
+  geom_text(aes(label = paste0(round(Percentage,2),"%")), vjust = -0.3, color = "black")+
+  ylab("Percentage")+
+  ggtitle("Count of Attritions")
+
+```
+####The highest Attrition percentage is Research and development
+```{EDA contd}
+
+#Education Field
+df |> 
+  filter(Attrition == "Yes")|> 
+  count(EducationField) |>
+  mutate(Percentage = n / sum(n) * 100) |>
+  ggplot(aes(x = EducationField,y = Percentage, fill = EducationField))+
+  geom_bar(aes(color = EducationField), stat = "identity")+
+  geom_text(aes(label = paste0(round(Percentage,2),"%")), vjust = -0.3, color = "black")+
+  ylab("Percentage")+
+  ggtitle("Count of Attritions")
+```
+#### The highest Attrition percentage is life sciences
+```{EDA contd2}
+
+# MonthlyIncome/Age/Education
+df |>
+  filter(Attrition == "Yes") |> 
+  ggplot(aes(x = MonthlyIncome/100,y = Age))+
+  geom_point(aes(shape = OverTime, color = Education))+
+  ylab("Age")+
+  ggtitle("Count of Attritions")
+```
+#### Appears to be a positive relationship between Age and Monthly income
+```{EDA contd3}
+
+# COmputing the mean Yearly income by JobRole
+df |> 
+  group_by(JobRole) |> 
+  mutate(AvgYearlyIncome = mean(MonthlyIncome*12)) |>
+  distinct(JobRole,AvgYearlyIncome) |> 
+  ggplot(aes(x = JobRole, y = AvgYearlyIncome)) +
+  geom_bar(aes(fill = JobRole), stat = "identity")+
+  geom_text(aes(label = round(AvgYearlyIncome,0)), vjust = -0.3, color = "black")+
+  ggtitle("Avg Yearly Income by Job Role")
+
+df |>
+  filter(Attrition == "Yes") |> 
+  count(JobRole) |> 
+  mutate(Percentage = n / sum(n) * 100) |> 
+  ggplot(aes(x = JobRole, y = Percentage, fill = JobRole))+
+  geom_bar(stat = "identity")+
+  geom_text(aes(label = paste0(round(Percentage,2),"%")), vjust = -0.3, color = "black")+
+  ylab("Count")+
+  ggtitle("Count of Attritions")
+```
+### Jobs that account for the highest percentage of the attiritions are:
+#### -Sales Representative
+#### -Sales Executive
+#### -Research scientist
+#### -Laboratory Technician
+```{blank}
+```
+# Identifying Key Features
+
+```{r}
+
+
+# T-test for Age
+age_yes <- df$Age[df$Attrition == "Yes"]
+age_no <- df$Age[df$Attrition == "No"]
+t_test_age <- t.test(age_yes, age_no)
+print(t_test_age)
+# AGE SEEMS TO BE A STATISTICALLY SIGNIFICANT VARIABLE
+
+
+# Converting Categorical Variables to numeric 
+df$AttritionNum <- as.numeric(df$Attrition == "Yes")
+df$OTNum <- as.numeric(df$OverTime == "Yes")
+df$GenderNum <- as.numeric(ifelse(df$Gender == "Male", 1, 0))
+df$JobNum <- as.numeric(factor(df$JobRole))
+df$Dept <- as.numeric(factor(df$Department))
+df$TravelNum <- as.numeric(factor(df$BusinessTravel))
+df$EDUNum <- as.numeric(factor(df$EducationField))
+
+# Correlation matrix including AttritionNum
+numeric_vars <- c("AttritionNum", "Age","TotalWorkingYears", "StockOptionLevel","YearsWithCurrManager"
+                  ,"JobLevel","YearsInCurrentRole", "YearsAtCompany", "OTNum", "JobSatisfaction", "GenderNum", 
+                  "EnvironmentSatisfaction", "JobNum", "Dept", "TravelNum", "EDUNum", "MonthlyIncome")
+cor_matrix <- cor(df[numeric_vars])  
+print(cor_matrix)
+```
+### TotalWorkingYears, JobLevel, and Overtime appear to be the variables with the highest correlation to Attrition.
+
+### For my Attrition analysis i have chosen to use:
+##### "Age","TotalWorkingYears", "StockOptionLevel","YearsWithCurrManager" "JobLevel","YearsInCurrentRole", "YearsAtCompany", "OTNum", "JobSatisfaction", "MonthlyIncome"
+```{blank2}
+```
+# Advanced Analysis/ Predictions
+
+## ATTRITION MODEL
+```{r}
+
+library(readr)
+library(caret)
+library(dplyr)
+
+# Load training and test data
+train_data <- read.csv("C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/CaseStudy2-data.csv")
+test_data <- read.csv("C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/CaseStudy2CompSet No Attrition.csv")
+
+summary(as.factor(train_data$Attrition))
+140/(870)
+# 16%
+```
+#### I will be using the Undersampling method due to disproportionate representation of Attrition
+```{Advanced Analysis contd}
+
+numAtt <- summary(as.factor(train_data$Attrition))[2]
+OnlyNotAtt <- train_data |>  filter(Attrition == "No")
+OnlyAttNo = OnlyNotAtt[sample(seq(1,140,1),numAtt),]
+
+UnderSamp = rbind(train_data |>  filter(Attrition == "Yes"), OnlyAttNo)
+dim(UnderSamp)
+
+# Converting Categorical Variables to numeric 
+UnderSamp$AttritionNum <- as.numeric(UnderSamp$Attrition == "Yes")
+UnderSamp$OTNum <- as.numeric(UnderSamp$OverTime == "Yes")
+UnderSamp$GenderNum <- as.numeric(ifelse(UnderSamp$Gender == "Male", 1, 0))
+UnderSamp$JobNum <- as.numeric(factor(UnderSamp$JobRole))
+UnderSamp$Dept <- as.numeric(factor(UnderSamp$Department))
+UnderSamp$TravelNum <- as.numeric(factor(UnderSamp$BusinessTravel))
+UnderSamp$EDUNum <- as.numeric(factor(UnderSamp$EducationField))
+
+########################### TESTING KNN ########################################
+# Correlation matrix including AttritionNum
+numeric_vars <- c("AttritionNum", "Age","TotalWorkingYears", "StockOptionLevel","YearsWithCurrManager"
+                  ,"JobLevel","YearsInCurrentRole", "YearsAtCompany", "OTNum", "JobSatisfaction", "GenderNum", 
+                  "EnvironmentSatisfaction", "JobNum", "Dept", "TravelNum", "EDUNum")
+
+vars = c( "Age","TotalWorkingYears", "StockOptionLevel","YearsWithCurrManager"
+          ,"JobLevel","JobInvolvement",  "MonthlyIncome")
+
+classifications = knn(UnderSamp[vars],df[vars],UnderSamp[,3], prob = TRUE, k = 5)
+table(classifications,df[,3])
+CM = confusionMatrix(table(classifications,df[,3]), mode = "everything")
+CM
+##############################################################################################
+train_data <- UnderSamp |> 
+                  select(Attrition, Age, JobLevel, StockOptionLevel, TotalWorkingYears, OverTime, YearsInCurrentRole, 
+                         YearsAtCompany, YearsWithCurrManager, JobSatisfaction)
+test_data <- test_data |> 
+                  select(ID, Age, JobLevel, StockOptionLevel, TotalWorkingYears, OverTime, YearsInCurrentRole, 
+                         YearsAtCompany, YearsWithCurrManager, JobSatisfaction)
+
+
+# Preprocess the data (centering and scaling)
+preprocess_model <- preProcess(train_data, method = c("center", "scale"))
+train_processed <- predict(preprocess_model, train_data)
+test_processed <- predict(preprocess_model, test_data)
+
+
+# Train kNN model
+knn_model <- knn3(Attrition ~ ., data = train_processed, k = 5)
+
+# Predict using kNN
+knn_predictions <- predict(knn_model, test_processed)
+knn_predictions<- data.frame(knn_predictions)
+knn_predictions$Decision <- ifelse(knn_predictions$No > knn_predictions$Yes, "No", "Yes")
+
+
+# Adding prediction to test_data and ordering by ID
+test_data$Attrition <- knn_predictions$Decision
+test_data <- arrange(test_data, ID) 
+# save the file
+write.csv(test_data, "C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/Case2PredictionsXXXX Attrition.csv", row.names = FALSE)
+```
+# Salary Model
+
+## EDA/Identifying Key Features
+```{r}
+df = read.csv("C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/CaseStudy2-data.csv", 
+              header = TRUE)
+
+# Plotting the distribution of MonthlySalary
+df |> 
+ggplot( aes(x = MonthlyIncome)) + 
+  geom_histogram(bins = 30, fill = "blue", color = "black") +
+  theme_minimal() +
+  ggtitle("Distribution of Monthly Salary")
+
+# Plotting MonthlySalary against a categorical variable, e.g., Department
+ggplot(df, aes(x = JobRole, y = MonthlyIncome)) +
+  geom_boxplot() +
+  theme_minimal() +
+  xlab("JobRole") +
+  ylab("Monthly Salary") +
+  ggtitle("Monthly Salary by Department")
+
+
+# Scatter plot of MonthlySalary and TotalWorkingYears
+ggplot(df, aes(x = TotalWorkingYears, y = MonthlyIncome)) +
+  geom_point(aes(color = Department), alpha = 0.5) +
+  geom_smooth(method = "lm") +
+  theme_minimal() +
+  xlab("Total Working Years") +
+  ylab("Monthly Salary") +
+  ggtitle("Monthly Salary vs. Total Working Years")
+
+
+# Converting Categorical Variables to numeric 
+df$AttritionNum <- as.numeric(df$Attrition == "Yes")
+df$OTNum <- as.numeric(df$OverTime == "Yes")
+df$GenderNum <- as.numeric(ifelse(df$Gender == "Male", 1, 0))
+df$JobNum <- as.numeric(factor(df$JobRole))
+df$Dept <- as.numeric(factor(df$Department))
+df$TravelNum <- as.numeric(factor(df$BusinessTravel))
+df$EDUNum <- as.numeric(factor(df$EducationField))
+
+
+# Linear regression analysis
+lm_result <- lm(MonthlyIncome ~ TotalWorkingYears + Age + JobRole + Education, data = df)
+summary(lm_result)
+
+
+# Correlation matrix of numerical variables
+numerical_data <- select_if(df, is.numeric)
+
+cor_matrix <- cor(numerical_data)  
+print(cor_matrix)
+```
+### NumCompaniesWorked, Attrition, and TotalWorkingYears appear to be the variables with the highest correlation to MonthlyIncome.
+
+###For my MonthlyIncome analysis i have chosen to use:
+####NumCompaniesWorked, Attrition, TotalWorkingYears, MonthlyRate, BusinessTravel, JobRole
+```{r}
+```
+# Advanced Analysis/Predictions for Salary
+```{r}
+# Load necessary libraries
+library(caret)  # For model training and validation
+library(dplyr)  # For data manipulation
+library(MASS)   # For stepwise selection
+
+
+# Load datasets
+train_data <- read.csv("C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/CaseStudy2-data.csv")
+test_data <- read.csv("C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/CaseStudy2CompSet No Salary.csv")
+test_data$MonthlyIncome <- as.numeric("")
+
+train_data <-
+  train_data |> 
+  dplyr::select(ID,MonthlyIncome,TotalWorkingYears,MonthlyRate,NumCompaniesWorked,Attrition,Education,BusinessTravel,JobRole)
+
+test_data <-
+  test_data |> 
+  dplyr::select(ID,MonthlyIncome,TotalWorkingYears,MonthlyRate,NumCompaniesWorked,Attrition,Education,BusinessTravel,JobRole)
+
+
+# Checking for missing data
+train_data <- train_data[complete.cases(train_data), ]
+
+
+# train test split
+train_index <- createDataPartition(train_data$MonthlyIncome, p = 0.8, list = FALSE)
+train_set <- train_data[train_index, ]
+validation_set <- train_data[-train_index, ]
+
+# build linear regression model, leaving out monthly income and ID
+predictors <- setdiff(names(train_set), c("MonthlyIncome", "ID"))
+
+# Create a formula for the linear regression model
+formula <- as.formula(paste("MonthlyIncome ~", paste(predictors, collapse = " + ")))
+
+# Stepwise feature selection to improve the model
+final_model <- lm(formula, data = train_set)
+
+# Check if the model builds without errors
+tryCatch(
+  {
+    step_model <- stepAIC(final_model, direction = "both")  # Stepwise feature selection
+    TRUE
+  },
+  error = function(e) {
+    print("Error in building the model. Please check for invalid factors or missing data.")
+    FALSE
+  }
+)
+
+# Validate the model and compute RMSE
+predictions <- predict(final_model, newdata = validation_set)
+rmse <- sqrt(mean((validation_set$MonthlyIncome - predictions)^2))  # Compute RMSE
+
+print(paste("Validation RMSE:", round(rmse, 2)))
+
+# Apply to the test dataset if RMSE is < 3000
+if (rmse < 3000) {
+  test_data$MonthlyIncome <- predict(final_model, newdata = test_data)
+  write.csv(arrange(test_data,ID), "C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/Case2PredictionsShead Salary.csv", row.names = FALSE)  # Save the results
+} else {
+  print("RMSE is above the desired threshold. Further refinement is required.")
+}
