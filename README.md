@@ -36,7 +36,7 @@ This GitHub repository contains the following key components:
 - **`Case Study 2 Knit.html`**: An html report generated from an analysis markdown file
 - **Slide Decks**: Presentations summarizing the findings and insights from the data analysis.
 - **Charts and Graphs**: Visual aids created from the analysis to support the presentation.
-
+- **Shiny App**: https://jshead.shinyapps.io/CaseStudy2App/
 ## Usage and Notes
 
 To run this project, follow these steps:
