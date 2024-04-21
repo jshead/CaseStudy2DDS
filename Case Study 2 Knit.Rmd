@@ -11,7 +11,7 @@ knitr::opts_chunk$set(echo = TRUE)
 # Clearing the workspace
 rm(list = ls())
 ```
-#Libraries
+# Libraries
 ```{r packages}
 # Load necessary libraries
 library(tm)
@@ -28,7 +28,7 @@ library(mvtnorm)
 library(gmodels)
 ```
 
-#Data Loading
+# Data Loading
 ```{r pressure, echo=FALSE}
 # Read the data
 df <- read.csv("C:/Users/jaren/OneDrive/Desktop/MSDS/DoingDataScience/Unit 14_15 Project/CaseStudy2-data.csv", header = TRUE)
@@ -111,7 +111,7 @@ df |>
   ggtitle("Count of Attritions")
 
 ```
-####The highest Attrition percentage is Research and development
+#### The highest Attrition percentage is Research and development
 ```{EDA contd}
 
 #Education Field
@@ -336,8 +336,8 @@ print(cor_matrix)
 ```
 ### NumCompaniesWorked, Attrition, and TotalWorkingYears appear to be the variables with the highest correlation to MonthlyIncome.
 
-###For my MonthlyIncome analysis i have chosen to use:
-####NumCompaniesWorked, Attrition, TotalWorkingYears, MonthlyRate, BusinessTravel, JobRole
+### For my MonthlyIncome analysis i have chosen to use:
+#### NumCompaniesWorked, Attrition, TotalWorkingYears, MonthlyRate, BusinessTravel, JobRole
 ```{r}
 ```
 # Advanced Analysis/Predictions for Salary
