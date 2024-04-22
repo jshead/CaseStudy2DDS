@@ -194,6 +194,12 @@ numeric_vars <- c("AttritionNum", "Age","TotalWorkingYears", "StockOptionLevel",
                   "EnvironmentSatisfaction", "JobNum", "Dept", "TravelNum", "EDUNum", "MonthlyIncome")
 cor_matrix <- cor(df[numeric_vars])  
 print(cor_matrix)
+
+library(corrplot)
+
+# Create a heatmap
+corrplot(cor_matrix, method = "color", type = "upper", order = "hclust",
+         tl.col = "black", tl.srt = 45, diag = FALSE)
 ```
 ### TotalWorkingYears, JobLevel, and Overtime appear to be the variables with the highest correlation to Attrition.
 
@@ -333,6 +339,31 @@ numerical_data <- select_if(df, is.numeric)
 
 cor_matrix <- cor(numerical_data)  
 print(cor_matrix)
+
+# Select the variable of interest
+target_variable <- "MonthlyIncome"  # Replace with your variable of interest
+
+# Extract correlations with the specific variable
+cor_with_target <- cor_matrix[target_variable, , drop = FALSE]
+
+# Convert the correlations to a long format
+library(reshape2)
+cor_long <- melt(cor_with_target)
+
+
+# Create the heatmap
+library(ggplot2)
+
+ggplot(data = cor_long, aes(x = Var1, y = Var2, fill = value)) +
+  geom_tile() +
+  scale_fill_gradient2(low = "blue", high = "red", mid = "white",
+                       midpoint = 0, limit = c(-1, 1), space = "Lab",
+                       name = "Correlation") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 45, hjust = 1)) +
+  labs(title = paste("Correlations with", target_variable),
+       x = "Variables",
+       y = target_variable)
 ```
 ### NumCompaniesWorked, Attrition, and TotalWorkingYears appear to be the variables with the highest correlation to MonthlyIncome.
 
