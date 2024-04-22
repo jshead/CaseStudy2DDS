@@ -38,7 +38,7 @@ This GitHub repository contains the following key components:
 - **Charts and Graphs**: Visual aids created from the analysis to support the presentation.
 - **Shiny App**: https://jshead.shinyapps.io/CaseStudy2App/
 - **Video Presentation**: https://youtu.be/QOnWDLSzs-w
-- **Jekyll Page**: jshead@github.io
+- **Jekyll Page**: jshead.github.io
   
 ## Usage and Notes
 
