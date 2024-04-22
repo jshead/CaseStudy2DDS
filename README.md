@@ -15,7 +15,7 @@ This project analyzes a dataset with a focus on employee attrition, salary, and 
 This GitHub repository contains the following key components:
 
 - **R Script (`Case Study 2_Final.R`)**: The main script for data analysis.
-- **R Markdown (`Case Study 2 Knit.Rmd`)**: A combined report with code and narrative explanation.
+- **R Markdown (`Case Study 2 Markdown.Rmd`)**: A combined report with code and narrative explanation.
 - **Datasets**: CSV files containing data for analysis.
 - **Output Files**: The results of the R Markdown knitting process.
 
