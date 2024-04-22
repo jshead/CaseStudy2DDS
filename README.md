@@ -37,6 +37,8 @@ This GitHub repository contains the following key components:
 - **Slide Decks**: Presentations summarizing the findings and insights from the data analysis.
 - **Charts and Graphs**: Visual aids created from the analysis to support the presentation.
 - **Shiny App**: https://jshead.shinyapps.io/CaseStudy2App/
+- **Video Presentation**: https://youtu.be/QOnWDLSzs-w
+  
 ## Usage and Notes
 
 To run this project, follow these steps:
